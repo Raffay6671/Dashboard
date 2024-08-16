@@ -5,19 +5,27 @@ import Loader from './common/Loader';
 import PageTitle from './components/PageTitle';
 import SignIn from './pages/Authentication/SignIn';
 import SignUp from './pages/Authentication/SignUp';
-import ECommerce from './pages/Dashboard/ECommerce';
+// import ECommerce from './pages/Dashboard/ECommerce';
 import DefaultLayout from './layout/DefaultLayout';
+import TableOne, { VpnUsers, FetchTableData } from './components/Tables/TableOne';
+import ServerListPage from './components/Tables/ServerListPage';
 
 function App() {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const { pathname } = useLocation();
+  const [vpnData, setVpnData] = useState<VpnUsers[]>([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1000);
+    const fetchData = async () => {
+      const data = await FetchTableData();
+      setVpnData(data);
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   return loading ? (
@@ -29,12 +37,29 @@ function App() {
           index
           element={
             <>
-              <PageTitle title="eCommerce Dashboard | TailAdmin - Tailwind CSS Admin Dashboard Template" />
-              <ECommerce />
+              <PageTitle title="VPN Dashboard | TailAdmin - Tailwind CSS Admin Dashboard Template" />
+              <TableOne data={vpnData} />
             </>
           }
         />
-
+        <Route
+          path="/vpn-dashboard"
+          element={
+            <>
+              <PageTitle title="VPN Dashboard | TailAdmin - Tailwind CSS Admin Dashboard Template" />
+              <TableOne data={vpnData} />
+            </>
+          }
+        />
+        <Route
+          path="/server-list/:country"
+          element={
+            <>
+              <PageTitle title="Server List | TailAdmin - Tailwind CSS Admin Dashboard Template" />
+              <ServerListPage data={vpnData} />
+            </>
+          }
+        />
         <Route
           path="/auth/signin"
           element={

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Interface for the server statistics
-interface ServerStats {
+export interface ServerStats {
   bytes_in: number;
   bytes_out: number;
   incoming_speed: number;
@@ -10,22 +11,22 @@ interface ServerStats {
 }
 
 // Interface for the server details
-interface ServerDetails {
+export interface ServerDetails {
   uid: string;
   city_name: string;
   ipaddress: string;
-  stats: ServerStats;  // Embedded the Server Stats within ServerDetails
+  stats: ServerStats;
 }
 
 // Interface for each country with its servers
-interface VpnUsers {
+export interface VpnUsers {
   country: string;
   totalServers: number;
-  list: ServerDetails[];  // Include the server details list for each country
+  list: ServerDetails[];
 }
 
 // Fetch data function
-async function FetchTableData(): Promise<VpnUsers[]> {
+export async function FetchTableData(): Promise<VpnUsers[]> {
   try {
     const response = await fetch(
       'https://fvm.funsol.cloud/vmc_all_servers/',
@@ -43,7 +44,6 @@ async function FetchTableData(): Promise<VpnUsers[]> {
 
     const data = await response.json();
 
-    // Map the fetched data to the required format for VpnUsers
     const vpnUsers: VpnUsers[] = data.servers.map((server: any) => ({
       country: server.cname,
       totalServers: server.list.length,
@@ -57,16 +57,14 @@ async function FetchTableData(): Promise<VpnUsers[]> {
           incoming_speed: item.latest_stat.incoming_speed,
           outgoing_speed: item.latest_stat.outgoing_speed,
           no_of_active_users: item.latest_stat.no_of_active_users,
-        
-        }
+        },
       })),
     }));
 
-    console.log('Fetched VPN Users:', vpnUsers);
     return vpnUsers;
   } catch (error) {
     console.error('Error fetching the data', error);
-    return []; 
+    return [];
   }
 }
 
@@ -74,12 +72,16 @@ async function FetchTableData(): Promise<VpnUsers[]> {
 const convertToMB = (bytes: number) => (bytes / (1024 * 1024)).toFixed(2) + " MB";
 const convertSpeedToKB = (speed: number) => (speed / 1024).toFixed(2) + " KB/s";
 
-// Table component to display the data
 const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
   const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const toggleListVisibility = (country: string) => {
     setExpandedCountry(expandedCountry === country ? null : country);
+  };
+
+  const handleViewList = (country: string) => {
+    navigate(`/server-list/${country}`);
   };
 
   return (
@@ -107,7 +109,7 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
           </div>
           <div className="p-2.5 text-center xl:p-5">
             <h5 className="text-sm font-medium uppercase xsm:text-base">
-              Lists
+              Toggle List
             </h5>
           </div>
           <div className="p-2.5 text-center xl:p-5">
@@ -118,10 +120,10 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
         </div>
 
         {data.map((user, key) => (
-          <div key={key}>
+          <React.Fragment key={key}>
             <div className={`grid grid-cols-3 sm:grid-cols-8 ${key === data.length - 1 ? '' : 'border-b border-stroke dark:border-strokedark'}`}>
               <div className="hidden items-center justify-center p-2.5 sm:flex xl:p-5">
-                <p className="text-meta-3 ">{user.country}</p>
+                <p className="text-meta-3">{user.country}</p>
               </div>
               <div className="flex items-center justify-center p-2.5 xl:p-5">
                 <p className="text-black dark:text-white">{user.totalServers}</p>
@@ -135,11 +137,11 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
                 <button onClick={() => toggleListVisibility(user.country)} className="text-blue-500">Toggle List</button>
               </div>
               <div className="flex items-center justify-center p-2.5 xl:p-5">
-                <button onClick={() => toggleListVisibility(user.country)} className="text-blue-500">View List</button>
+                <button onClick={() => handleViewList(user.country)} className="text-blue-500">View List</button>
               </div>
             </div>
 
-            {/* Expandable List */}
+            {/* Expanded list details */}
             {expandedCountry === user.country && (
               <div className="p-5 bg-gray-100 dark:bg-gray-700">
                 <h5 className="text-lg font-medium mb-4">Details for {user.country}</h5>
@@ -170,30 +172,11 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
                 </div>
               </div>
             )}
-          </div>
+          </React.Fragment>
         ))}
       </div>
     </div>
   );
 };
 
-function MyComponent() {
-  const [vpnUsers, setVpnUsers] = useState<VpnUsers[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const vpnUsers = await FetchTableData();
-      setVpnUsers(vpnUsers);
-    };
-
-    loadData();
-  }, []);
-
-  if (vpnUsers.length === 0) {
-    return <div>Loading...</div>;
-  }
-
-  return <TableOne data={vpnUsers} />;
-}
-
-export default MyComponent;
+export default TableOne;
