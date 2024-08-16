@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// Interface for the server details
-interface ServerDetails {
-  uid: string;
-  city_name: string;
-  ipaddress: string;
+// Interface for the server statistics
+interface ServerStats {
   bytes_in: number;
   bytes_out: number;
   incoming_speed: number;
@@ -12,11 +9,19 @@ interface ServerDetails {
   no_of_active_users: number;
 }
 
+// Interface for the server details
+interface ServerDetails {
+  uid: string;
+  city_name: string;
+  ipaddress: string;
+  stats: ServerStats;  // Embedded the Server Stats within ServerDetails
+}
+
 // Interface for each country with its servers
 interface VpnUsers {
   country: string;
   totalServers: number;
-  list: ServerDetails[];  
+  list: ServerDetails[];  // Include the server details list for each country
 }
 
 // Fetch data function
@@ -38,29 +43,36 @@ async function FetchTableData(): Promise<VpnUsers[]> {
 
     const data = await response.json();
 
-    // Map the fetched data to the required format
-    const countryServersMap: VpnUsers[] = data.servers.map((server: any) => ({
+    // Map the fetched data to the required format for VpnUsers
+    const vpnUsers: VpnUsers[] = data.servers.map((server: any) => ({
       country: server.cname,
       totalServers: server.list.length,
       list: server.list.map((item: any) => ({
         uid: item.uid,
         city_name: item.city_name,
         ipaddress: item.ipaddress,
-        bytes_in: item.latest_stat.bytes_in,
-        bytes_out: item.latest_stat.bytes_out,
-        incoming_speed: item.latest_stat.incoming_speed,
-        outgoing_speed: item.latest_stat.outgoing_speed,
-        no_of_active_users: item.latest_stat.no_of_active_users,
+        stats: {
+          bytes_in: item.latest_stat.bytes_in,
+          bytes_out: item.latest_stat.bytes_out,
+          incoming_speed: item.latest_stat.incoming_speed,
+          outgoing_speed: item.latest_stat.outgoing_speed,
+          no_of_active_users: item.latest_stat.no_of_active_users,
+        
+        }
       })),
     }));
 
-    console.log('Fetched data:', countryServersMap);
-    return countryServersMap;
+    console.log('Fetched VPN Users:', vpnUsers);
+    return vpnUsers;
   } catch (error) {
     console.error('Error fetching the data', error);
-    return [];
+    return []; 
   }
 }
+
+// Helper functions for conversions
+const convertToMB = (bytes: number) => (bytes / (1024 * 1024)).toFixed(2) + " MB";
+const convertSpeedToKB = (speed: number) => (speed / 1024).toFixed(2) + " KB/s";
 
 // Table component to display the data
 const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
@@ -116,7 +128,7 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
               </div>
               <div className="flex items-center justify-center p-2.5 xl:p-5">
                 <p className="text-black dark:text-white">
-                  {user.list.reduce((total, item) => total + item.no_of_active_users, 0)}
+                  {user.list.reduce((total, item) => total + item.stats.no_of_active_users, 0)}
                 </p>
               </div>
               <div className="flex items-center justify-center p-2.5 xl:p-5">
@@ -140,18 +152,19 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
                   <p className="font-semibold">Bytes Out</p>
                   <p className="font-semibold">Received Speed</p>
                   <p className="font-semibold">Sent Speed</p>
-                  <p className="font-semibold">Clients</p>
+                  <p className="font-semibold">Active Users</p>
+
                   {user.list.map((item, index) => (
                     <React.Fragment key={index}>
                       <p>{user.country}</p>
                       <p>{item.uid}</p>
                       <p>{item.city_name}</p>
                       <p>{item.ipaddress}</p>
-                      <p>{item.bytes_in}</p>
-                      <p>{item.bytes_out}</p>
-                      <p>{item.incoming_speed}</p>
-                      <p>{item.outgoing_speed}</p>
-                      <p>{item.no_of_active_users}</p>
+                      <p>{convertToMB(item.stats.bytes_in)}</p> 
+                      <p>{convertToMB(item.stats.bytes_out)}</p> 
+                      <p>{convertSpeedToKB(item.stats.incoming_speed)}</p> 
+                      <p>{convertSpeedToKB(item.stats.outgoing_speed)}</p> 
+                      <p>{item.stats.no_of_active_users}</p>
                     </React.Fragment>
                   ))}
                 </div>
@@ -164,24 +177,23 @@ const TableOne: React.FC<{ data: VpnUsers[] }> = ({ data }) => {
   );
 };
 
-// Main component to load data and render the table
 function MyComponent() {
-  const [data, setData] = useState<VpnUsers[]>([]);
+  const [vpnUsers, setVpnUsers] = useState<VpnUsers[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const response = await FetchTableData();
-      setData(response);
+      const vpnUsers = await FetchTableData();
+      setVpnUsers(vpnUsers);
     };
 
     loadData();
   }, []);
 
-  if (data.length === 0) {
+  if (vpnUsers.length === 0) {
     return <div>Loading...</div>;
   }
 
-  return <TableOne data={data} />;
+  return <TableOne data={vpnUsers} />;
 }
 
 export default MyComponent;
